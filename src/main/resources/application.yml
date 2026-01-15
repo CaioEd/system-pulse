@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: system-pulse
+  docker:
+    compose:
+      enabled: false
+      skip:
+        in-tests: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/system-pulse-db
+    username: user
+    password: postgresdbpassword
+  jpa:
+    hibernate:
+      ddl-auto: update
