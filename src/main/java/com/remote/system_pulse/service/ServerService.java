@@ -36,7 +36,7 @@ public class ServerService {
 
     @Transactional(readOnly = true)
     public Server getServerByIpAddress(String ip) {
-        return serverRepository.findByIpAddress(ip).orElseThrow(() -> new RuntimeException("Server not found with ip: " + ip));
+        return serverRepository.findByIp(ip).orElseThrow(() -> new RuntimeException("Server not found with ip: " + ip));
     }
     
 }

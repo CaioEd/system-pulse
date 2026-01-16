@@ -10,5 +10,5 @@ import com.remote.system_pulse.model.Server;
 public interface ServerRepository extends JpaRepository<Server, Long> {
     // Standard CRUD operations are already implemented save(), findById(), findAll(), deleteById()
 
-    Optional<Server> findByIpAddress(String ip);
+    Optional<Server> findByIp(String ip);
 }
