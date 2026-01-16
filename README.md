@@ -22,7 +22,7 @@ linux: ./mvnw clean install
 ```
 
 ```bash
-database: docker -f docker-compose.db.yml up -d
+database: docker compose -f docker-compose.db.yml up -d
 ```
 
 ```bash
