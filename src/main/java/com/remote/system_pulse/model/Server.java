@@ -18,7 +18,7 @@ import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
+import com.remote.system_pulse.utils.IpRegex;
 @Entity
 @Getter
 @Setter
@@ -38,7 +38,7 @@ public class Server {
     private String description;
 
     @NotBlank
-    @Pattern(regexp = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$",
+    @Pattern(regexp = IpRegex.IP_PATTERN,
              message = "IP inválido (IPv4 ou IPv6)")
     @Column(nullable = false)
     private String ip;
