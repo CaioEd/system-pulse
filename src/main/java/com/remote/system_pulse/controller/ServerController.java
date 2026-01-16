@@ -36,7 +36,7 @@ public class ServerController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/{ip}")
+    @GetMapping("/ip/{ip}")
     public ResponseEntity<ServerResponseDTO> getServerByIpAddress(@PathVariable String ip) {
         ServerResponseDTO response = serverService.getServerByIpAddress(ip);
         return new ResponseEntity<>(response, HttpStatus.OK);
