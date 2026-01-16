@@ -1,6 +1,10 @@
 package com.remote.system_pulse.dto;
 
 import jakarta.validation.constraints.*;
+
+import java.time.LocalDateTime;
+
+import com.remote.system_pulse.model.enums.ServerStatus;
 import com.remote.system_pulse.utils.IpRegex;
 
 
@@ -21,5 +25,8 @@ public record ServerRequestDTO(
     @NotNull(message = "Port is required")
     @Min(value = 1, message = "Port must be greater than 0")
     @Max(value = 65535, message = "Port must be less than 65535")
-    Integer port
+    Integer port,
+
+    ServerStatus status,
+    LocalDateTime lastChecked
 ) {}
