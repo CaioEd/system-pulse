@@ -1,7 +1,7 @@
 # System Pulse
 
 ## Description
-System Pulse is a system that monitors the health of servers.
+System Pulse is an application that monitors the health of servers.
 
 ## Tech Stack
 - Java 21
@@ -14,11 +14,11 @@ System Pulse is a system that monitors the health of servers.
 
 ## How to run
 ```bash
-windows: mvn clean install
+windows: ./mvnw clean install
 ```
 
 ```bash
-linux: ./mvnw clean install
+linux: mvn clean install
 ```
 
 ```bash
@@ -39,3 +39,6 @@ The application can also be run as a jar file:
 application: java -jar target/system-pulse-0.0.1-SNAPSHOT.jar
 ```
 
+## Architecture
+For the API, we are using the traditional MVC architecture, with models, repositories, services and controllers.
+For the database, we are using the traditional JPA architecture, with entities, repositories and services.
