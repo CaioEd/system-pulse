@@ -36,12 +36,6 @@ public class ServerController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/ip/{ip}")
-    public ResponseEntity<ServerResponseDTO> getServerByIpAddress(@PathVariable String ip) {
-        ServerResponseDTO response = serverService.getServerByIpAddress(ip);
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<ServerResponseDTO> updateServer(@PathVariable Long id, @Valid @RequestBody ServerRequestDTO request) {
         ServerResponseDTO response = serverService.updateServer(id, request);
