@@ -48,5 +48,4 @@ public class ServerController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-
 }
