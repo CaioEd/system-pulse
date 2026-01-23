@@ -48,13 +48,6 @@ public class ServerService {
         return mapToResponseDTO(server);
     }
 
-    @Transactional(readOnly = true)
-    public ServerResponseDTO getServerByIpAddress(String ip) {
-        Server server = serverRepository.findByIp(ip)
-                .orElseThrow(() -> new RuntimeException("Server not found with ip: " + ip));
-        return mapToResponseDTO(server);
-    }
-
     @Transactional
     public ServerResponseDTO updateServer(Long id, ServerRequestDTO serverRequestDTO) {
         Server server = serverRepository.findById(id)
