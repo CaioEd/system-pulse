@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Remote Pulse Monitor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #222; color: #0f0; }
+        #log { margin-top: 20px; border-top: 1px solid #444; padding-top: 10px; }
+        .event { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h2>📡 Remote System Pulse - Monitor</h2>
+    <div id="status">Desconectado</div>
+    <div id="log"></div>
+
+    <script>
+        var stompClient = null;
+
+        function connect() {
+            // Conecta no endpoint definido no WebSocketConfig
+            var socket = new SockJS('/ws-pulse');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function (frame) {
+                document.getElementById("status").innerText = "Conectado: " + frame;
+                console.log('Conectado: ' + frame);
+
+                // Se inscreve no tópico definido no NotificationService
+                stompClient.subscribe('/topic/status', function (message) {
+                    showUpdate(JSON.parse(message.body));
+                });
+            });
+        }
+
+        function showUpdate(data) {
+            var log = document.getElementById("log");
+            var p = document.createElement("div");
+            p.className = "event";
+            p.innerText = `[${data.timestamp}] Server ${data.serverId} (${data.ip}) is now ${data.status}`;
+            log.prepend(p); // Adiciona no topo
+        }
+
+        // Inicia conexão ao carregar
+        connect();
+    </script>
+</body>
+</html>
