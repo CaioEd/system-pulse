@@ -34,7 +34,7 @@ public class ConnectivityProbeService {
         ServerStatus newStatus = ping(ip, port) ? ServerStatus.ONLINE : ServerStatus.OFFLINE;
 
         // Só atualiza e notifica se houve mudança de status
-        if (server.getStatus() != newStatus) {
+        //if (server.getStatus() != newStatus) {
             server.setStatus(newStatus);
             server.setLastChecked(LocalDateTime.now());
             serverRepository.save(server);
@@ -46,7 +46,7 @@ public class ConnectivityProbeService {
                 newStatus,
                 LocalDateTime.now()
             ));
-        }
+        //}
     }
 
     private boolean ping(String ip, int port) {
