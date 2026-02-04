@@ -24,10 +24,6 @@ public class ServerService {
         // Mapeando DTO (Record) para Entidade
         server.setName(serverRequestDTO.name());
         server.setDescription(serverRequestDTO.description());
-        server.setIp(serverRequestDTO.ip());
-        server.setPort(serverRequestDTO.port());
-        server.setStatus(serverRequestDTO.status());
-        server.setLastChecked(serverRequestDTO.lastChecked());
 
         Server savedServer = serverRepository.save(server);
         return mapToResponseDTO(savedServer);
@@ -54,10 +50,6 @@ public class ServerService {
                 .orElseThrow(() -> new RuntimeException("Server not found with id: " + id));
         server.setName(serverRequestDTO.name());
         server.setDescription(serverRequestDTO.description());
-        server.setIp(serverRequestDTO.ip());
-        server.setPort(serverRequestDTO.port());
-        server.setStatus(serverRequestDTO.status());
-        server.setLastChecked(serverRequestDTO.lastChecked());
         Server updatedServer = serverRepository.save(server);
         return mapToResponseDTO(updatedServer);
     }
@@ -74,12 +66,15 @@ public class ServerService {
     private ServerResponseDTO mapToResponseDTO(Server server) {
         return new ServerResponseDTO(
             server.getId(),
+            server.getToken(),
             server.getName(),
             server.getDescription(),
             server.getIp(),
-            server.getPort(),
             server.getStatus(),
-            server.getLastChecked()
+            server.getLastHeartbeat(),
+            server.getUsageCpu(),
+            server.getUsageRam(),
+            server.getUsageDisk()
         );
     }
 }

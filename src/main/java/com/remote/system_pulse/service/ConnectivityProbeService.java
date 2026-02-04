@@ -25,18 +25,18 @@ public class ConnectivityProbeService {
 
     @Async("taskExecutor") // Usa nosso executor de Virtual Threads
     @Transactional // Garante consistência ao atualizar o banco
-    public void checkServerAvailability(Long serverId, String ip, int port) {
+    public void checkServerAvailability(Long serverId, String ip) {
         // Recupera o servidor (ou ignora se foi deletado durante o processo)
         var serverOpt = serverRepository.findById(serverId);
         if (serverOpt.isEmpty()) return;
         
         Server server = serverOpt.get();
-        ServerStatus newStatus = ping(ip, port) ? ServerStatus.ONLINE : ServerStatus.OFFLINE;
+        ServerStatus newStatus = ping(ip) ? ServerStatus.ONLINE : ServerStatus.OFFLINE;
 
         // Só atualiza e notifica se houve mudança de status
         //if (server.getStatus() != newStatus) {
             server.setStatus(newStatus);
-            server.setLastChecked(LocalDateTime.now());
+            server.setLastHeartbeat(LocalDateTime.now());
             serverRepository.save(server);
 
             // Dispara notificação WebSocket
@@ -49,10 +49,10 @@ public class ConnectivityProbeService {
         //}
     }
 
-    private boolean ping(String ip, int port) {
+    private boolean ping(String ip) {
         try (Socket socket = new Socket()) {
             // Timeout de 2 segundos. Se não responder, considera offline.
-            socket.connect(new InetSocketAddress(ip, port), 2000);
+            socket.connect(new InetSocketAddress(ip, 80), 2000);
             return true;
         } catch (IOException e) {
             return false; // Conexão falhou ou timeout

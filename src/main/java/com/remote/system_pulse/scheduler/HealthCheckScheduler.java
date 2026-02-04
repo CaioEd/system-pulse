@@ -28,8 +28,7 @@ public class HealthCheckScheduler {
             // O loop não bloqueia aqui. Ele dispara a tarefa para a Virtual Thread e continua.
             probeService.checkServerAvailability(   // envia dados como parâmetro para o serviço de Thread
                 server.getId(), 
-                server.getIp(), 
-                server.getPort()
+                server.getIp()
             );
         }
     }
