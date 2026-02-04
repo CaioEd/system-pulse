@@ -38,6 +38,9 @@ public class Server {
     @Column(nullable = false, unique = true, updatable = false)
     private UUID token;
 
+    // IP público do servidor
+    private String ip;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ServerStatus status = ServerStatus.UNKNOWN;
@@ -46,7 +49,7 @@ public class Server {
     private LocalDateTime lastHeartbeat;
 
     // dados dinâmicos, enviados pelo agente externo dos servidores
-    private String ip;
+    
     private Double usageCpu;
     private Double usageRam;
     private Double usageDisk;

@@ -2,11 +2,6 @@ package com.remote.system_pulse.dto;
 
 import jakarta.validation.constraints.*;
 
-import java.time.LocalDateTime;
-
-import com.remote.system_pulse.model.enums.ServerStatus;
-import com.remote.system_pulse.utils.IpRegex;
-
 
 // records are used to transport immutable data
 public record ServerRequestDTO(
@@ -15,18 +10,5 @@ public record ServerRequestDTO(
     String name, 
 
     @Size(max = 500, message = "Description must be between 10 and 500 characters")   // same limit as model
-    String description,
-
-    @NotBlank(message = "IP is required")
-    @Pattern(regexp = IpRegex.IP_PATTERN,
-             message = "IP inválido (IPv4 ou IPv6)")
-    String ip,
-
-    @NotNull(message = "Port is required")
-    @Min(value = 1, message = "Port must be greater than 0")
-    @Max(value = 65535, message = "Port must be less than 65535")
-    Integer port,
-
-    ServerStatus status,
-    LocalDateTime lastChecked
+    String description
 ) {}
