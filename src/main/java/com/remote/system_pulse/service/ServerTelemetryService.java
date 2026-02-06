@@ -73,8 +73,6 @@ public class ServerTelemetryService {
 
         serversToGoOffline.forEach(server -> {
             server.setStatus(ServerStatus.OFFLINE);
-            server.setUsageCpu(0.0); // Zera métricas visuais
-            server.setUsageRam(0.0);
             
             serverRepository.save(server);
             
