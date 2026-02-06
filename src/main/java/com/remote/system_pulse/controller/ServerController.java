@@ -5,7 +5,10 @@ import java.util.List;
 import com.remote.system_pulse.dto.ServerRequestDTO;
 import com.remote.system_pulse.dto.ServerResponseDTO;
 import com.remote.system_pulse.service.ServerService;
+import com.remote.system_pulse.dto.TelemetryDTO;
+import com.remote.system_pulse.service.ServerTelemetryService;
 import jakarta.validation.Valid; // Importação correta para validação
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class ServerController {
 
     private final ServerService serverService;
+    private final ServerTelemetryService serverTelemetryService;
     
     @PostMapping
     public ResponseEntity<ServerResponseDTO> createServer(@Valid @RequestBody ServerRequestDTO request) {
@@ -46,6 +50,15 @@ public class ServerController {
     public ResponseEntity<Void> deleteServer(@PathVariable Long id) {
         serverService.deleteServer(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/heartbeat")
+    public ResponseEntity<Void> receiveHeartbeat(
+            @RequestBody TelemetryDTO telemetryDTO, 
+            HttpServletRequest request
+    ) {
+        serverTelemetryService.updateTelemetry(telemetryDTO, request);
+        return ResponseEntity.ok().build();
     }
 
 }
