@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 @EnableAsync // habilita o processamento assíncrono
 public class AsyncConfig {
 
-    @Bean(name = "taskExecutor")    // guarda o objeto retornado dentro dp Application Context
+    @Bean(name = "taskExecutor")    // guarda o objeto retornado dentro do Application Context
     public AsyncTaskExecutor applicationTaskExecutor() {
         // Cria um executor que lança uma nova Virtual Thread para cada tarefa
         return new TaskExecutorAdapter(Executors.newVirtualThreadPerTaskExecutor());

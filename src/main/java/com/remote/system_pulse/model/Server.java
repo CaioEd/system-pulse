@@ -8,17 +8,14 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import com.remote.system_pulse.utils.IpRegex;
+import java.util.UUID;
 @Entity
 @Getter
 @Setter
@@ -37,22 +34,35 @@ public class Server {
     @Column(length = 500)
     private String description;
 
-    @NotBlank
-    @Pattern(regexp = IpRegex.IP_PATTERN,
-             message = "IP inválido (IPv4 ou IPv6)")
-    @Column(nullable = false)
-    private String ip;
+    // Hibernate 6 mapeia nativamente para UUID do Postgres
+    @Column(nullable = false, unique = true, updatable = false)
+    private UUID token;
 
-    @NotNull(message = "Port is required")
-    @Min(value = 1, message = "Port must be greater than 0")
-    @Max(value = 65535, message = "Port must be less than 65535")
-    private Integer port;
+    // IP público do servidor
+    private String ip;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ServerStatus status = ServerStatus.UNKNOWN;
 
-    @Column(name = "last_checked")
-    private LocalDateTime lastChecked;
+    @Column(name = "last_heartbeat")
+    private LocalDateTime lastHeartbeat;
+
+    // dados dinâmicos, enviados pelo agente externo dos servidores
+    
+    private Double usageCpu;
+    private Double usageRam;
+    private Double usageDisk;
+
+    /**
+     * Gerar o Token automaticamente antes de salvar no banco pela primeira vez.
+     * garante que nunca exista um server no banco sem um token
+    */
+    @PrePersist
+    public void generateToken() {
+        if (this.token == null) {
+            this.token = UUID.randomUUID();
+        }
+    }
 
 }
