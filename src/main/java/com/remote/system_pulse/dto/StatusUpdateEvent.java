@@ -9,5 +9,8 @@ public record StatusUpdateEvent(
     @JsonProperty("id") Long serverId,
     String ip,
     ServerStatus status,
+    Double usageCpu,
+    Double usageRam,
+    Double usageDisk,
     LocalDateTime timestamp
 ) {}
