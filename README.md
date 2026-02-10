@@ -45,9 +45,11 @@ The system follows a distributed architecture:
 * Java 21 or Docker installed.
 
 ### 1. Database Setup
-Start the PostgreSQL container:
+Start the PostgreSQL container - **(The application will not work without the database running before)**:
 ```bash
+cd docker
 docker compose -f docker-compose.db.yml up -d
+```
 
 ### 2. Install Dependencies
 ```bash
@@ -58,3 +60,7 @@ mvn clean install
 ```bash
 mvn spring-boot:run
 ```
+
+## Documentation
+The projetc uses springdoc-openapi to generate the API documentation. You can access it at `http://localhost:8080/swagger-ui.html`
+In the documentation you will have access to all endpoints and their respective parameters.
