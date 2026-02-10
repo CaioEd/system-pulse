@@ -53,7 +53,6 @@ cd system-pulse
 ### 2. Give permissions to the mvnw file
 ```bash
 chmod +x mvnw
-./mvnw clean install
 ```
 
 ### 3. Run Spring Boot Application
