@@ -44,21 +44,21 @@ The system follows a distributed architecture:
 ### Prerequisites
 * Java 21 or Docker installed.
 
-### 1. Database Setup
-Start the PostgreSQL container - **(The application will not work without the database running before)**:
+### 1. Clone the repository
 ```bash
-cd docker
-docker compose -f docker-compose.db.yml up -d
+git clone https://github.com/CaioEd/system-pulse.git
+cd system-pulse
 ```
 
-### 2. Install Dependencies
+### 2. Give permissions to the mvnw file
 ```bash
-mvn clean install
+chmod +x mvnw
+./mvnw clean install
 ```
 
 ### 3. Run Spring Boot Application
 ```bash
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 ## Documentation

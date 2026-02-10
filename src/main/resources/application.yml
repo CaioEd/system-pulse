@@ -3,7 +3,8 @@ spring:
     name: system-pulse
   docker:
     compose:
-      enabled: false
+      enabled: true
+      lifecycle-management: start_and_stop
       skip:
         in-tests: false
       file: docker/docker-compose.db.yml
