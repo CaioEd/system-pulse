@@ -6,6 +6,7 @@ spring:
       enabled: false
       skip:
         in-tests: false
+      file: docker/docker-compose.db.yml
   datasource:
     url: jdbc:postgresql://localhost:5432/system-pulse-db
     username: user
