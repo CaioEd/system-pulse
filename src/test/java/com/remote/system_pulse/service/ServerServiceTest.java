@@ -7,6 +7,7 @@ import com.remote.system_pulse.repository.ServerRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,14 +19,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class) // Enables Mockito with JUnit 5
+@ExtendWith(MockitoExtension.class)
 class ServerServiceTest {
 
     @Mock
-    private ServerRepository serverRepository; // Mock Repository to simulate database behavior
+    private ServerRepository serverRepository;
 
     @InjectMocks
-    private ServerService serverService; // Real Service injecting the mock
+    private ServerService serverService;
 
     @Test
     @DisplayName("Should create a server successfully and return DTO")
@@ -33,32 +34,34 @@ class ServerServiceTest {
         // Arrange
         ServerRequestDTO requestDTO = new ServerRequestDTO("Alpha Server", "Production Server");
         
-        // Simulating the object that the database would save (with a generated ID)
         Server savedServer = new Server();
         savedServer.setId(1L);
         savedServer.setName("Alpha Server");
         savedServer.setDescription("Production Server");
 
-        // when save methos is called, returns the object simulated
         when(serverRepository.save(any(Server.class))).thenReturn(savedServer);
 
-        // real service method is called
+        // Act
         ServerResponseDTO response = serverService.createServer(requestDTO);
 
         // Assert
         assertNotNull(response);
-        assertEquals(1L, response.id()); // Verify if ID was mapped correctly
-        assertEquals("Alpha Server", response.name()); // Verify if Name was mapped correctly
+        assertEquals(1L, response.id());
+
+        // Capturing the argument to ensure the service mapped the DTO correctly before saving
+        ArgumentCaptor<Server> serverCaptor = ArgumentCaptor.forClass(Server.class);
+        verify(serverRepository).save(serverCaptor.capture());
         
-        // Verify if the repository save method was called exactly once
-        verify(serverRepository, times(1)).save(any(Server.class));
+        Server capturedServer = serverCaptor.getValue();
+        assertEquals("Alpha Server", capturedServer.getName());
+        assertEquals("Production Server", capturedServer.getDescription());
     }
 
     @Test
     @DisplayName("Should return server by ID when found")
     void getServerById_ShouldReturnDTO_WhenFound() {
         // Arrange
-        Long serverId = 1L; // 1L defines the mock id as 1
+        Long serverId = 1L;
         Server server = new Server();
         server.setId(serverId);
         server.setName("Beta Server");
@@ -86,6 +89,8 @@ class ServerServiceTest {
         });
 
         assertEquals("Server not found with id: 99", exception.getMessage());
+        // Verify that no other interaction happened with the repo
+        verify(serverRepository).findById(serverId);
     }
 
     @Test
@@ -107,6 +112,7 @@ class ServerServiceTest {
         assertEquals("Server 01", result.get(0).name());
         assertEquals("Server 02", result.get(1).name());
         assertEquals("Server 03", result.get(2).name());
+        verify(serverRepository).findAll();
     }
 
     @Test
@@ -119,17 +125,26 @@ class ServerServiceTest {
         Server existingServer = new Server();
         existingServer.setId(id);
         existingServer.setName("Old Name");
+        existingServer.setDescription("Old Description");
 
         when(serverRepository.findById(id)).thenReturn(Optional.of(existingServer));
-        // Mocking save to return the same object passed as argument (updated entity)
+        // We mock save to return whatever is passed to it, to allow flow continuation
         when(serverRepository.save(any(Server.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
         ServerResponseDTO response = serverService.updateServer(id, updateRequest);
 
         // Assert
-        assertEquals("New Name", response.name());
-        assertEquals("New Description", response.description());
+        assertNotNull(response);
+        
+        // Capturing the argument to ensure the service actually updated the entity fields
+        ArgumentCaptor<Server> serverCaptor = ArgumentCaptor.forClass(Server.class);
+        verify(serverRepository).save(serverCaptor.capture());
+
+        Server capturedServer = serverCaptor.getValue();
+        assertEquals("New Name", capturedServer.getName());
+        assertEquals("New Description", capturedServer.getDescription());
+        assertEquals(id, capturedServer.getId());
     }
 
     @Test
