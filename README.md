@@ -63,3 +63,7 @@ chmod +x mvnw
 ## Documentation
 The projetc uses springdoc-openapi to generate the API documentation. You can access it at `http://localhost:8080/swagger-ui.html`
 In the documentation you will have access to all endpoints and their respective parameters.
+
+## Postman
+The project also has a Postman collection with all the endpoints and their respective parameters. You can find it at `postman/servers_spring.postman_collection.json`
+You can import it into Postman and use it to test the API.
