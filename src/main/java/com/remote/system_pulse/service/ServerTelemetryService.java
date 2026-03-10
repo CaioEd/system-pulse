@@ -1,9 +1,11 @@
 package com.remote.system_pulse.service;
 
+import com.remote.system_pulse.dto.ServerAlertDTO;
 import com.remote.system_pulse.dto.TelemetryDTO;
 import com.remote.system_pulse.model.Server;
 import com.remote.system_pulse.model.enums.ServerStatus;
 import com.remote.system_pulse.repository.ServerRepository;
+import com.remote.system_pulse.service.AlertProducer;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ServerTelemetryService {
+    private final AlertProducer alertProducer;
     private final ServerRepository serverRepository;
     private final SimpMessagingTemplate messagingTemplate; // Para WebSocket
 
@@ -73,13 +76,22 @@ public class ServerTelemetryService {
 
         serversToGoOffline.forEach(server -> {
             server.setStatus(ServerStatus.OFFLINE);
-            
             serverRepository.save(server);
-            
             // Avisa o front que caiu
             messagingTemplate.convertAndSend("/topic/status", server);
-            
             log.warn("Server marked as OFFLINE: {}", server.getName());
+
+            // Monta o DTO e envia para a fila
+            ServerAlertDTO alert = new ServerAlertDTO(
+                    server.getId(),
+                    server.getName(),
+                    server.getIp(),
+                    ServerStatus.OFFLINE,
+                    server.getUsageCpu(),
+                    "Server offline - no heartbeat received",
+                    LocalDateTime.now()
+            );
+            alertProducer.sendAlert(alert);
         });
     }
 }
