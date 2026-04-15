@@ -7,15 +7,15 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor    // Não precisa de constructor
+@RequiredArgsConstructor
 @Slf4j
 public class NotificationService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
     public void notifyStatusChange(StatusUpdateEvent event) {
-        log.info("Mudança de status: Servidor {} -> {}", event.serverId(), event.status());
-        // Envia para todos os inscritos em /topic/status
+        log.info("Status change: Server {} -> {}", event.serverId(), event.status());
+        // Sends to all subscribers of /topic/status
         messagingTemplate.convertAndSend("/topic/status", event);
     }
 }

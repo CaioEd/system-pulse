@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-// Se estiver usando Java 16+, .toList() funciona direto. 
-// Caso contrário, use: .collect(Collectors.toList());
+// On Java 16+, .toList() works directly.
+// Otherwise use: .collect(Collectors.toList());
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class ServerService {
     @Transactional
     public ServerResponseDTO createServer(ServerRequestDTO serverRequestDTO) {
         Server server = new Server();
-        // Mapeando DTO (Record) para Entidade
+        // Mapping DTO (Record) to Entity
         server.setName(serverRequestDTO.name());
         server.setDescription(serverRequestDTO.description());
 
@@ -33,8 +33,8 @@ public class ServerService {
     public List<ServerResponseDTO> getAllServers() {
         return serverRepository.findAll()
                 .stream()
-                .map(this::mapToResponseDTO) // Converte cada Entidade para DTO
-                .toList(); // Requer Java 16+. Se for antigo, use .collect(Collectors.toList())
+                .map(this::mapToResponseDTO) // Converts each Entity to DTO
+                .toList(); // Requires Java 16+. Otherwise use .collect(Collectors.toList())
     }
 
     @Transactional(readOnly = true)
@@ -61,8 +61,8 @@ public class ServerService {
         serverRepository.delete(server);
     }
 
-    // Método auxiliar de conversão (Entidade -> DTO)
-    // Centraliza a lógica para não repetir código
+    // Conversion helper (Entity -> DTO)
+    // Centralizes the mapping logic to avoid duplication
     private ServerResponseDTO mapToResponseDTO(Server server) {
         return new ServerResponseDTO(
             server.getId(),

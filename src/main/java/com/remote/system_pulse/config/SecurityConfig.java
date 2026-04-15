@@ -13,17 +13,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
-@EnableWebSecurity  // mantém, mas vamos ignorar auth
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())  // essencial sem sessão/auth
+            .csrf(csrf -> csrf.disable())  // required when not using sessions/auth
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .anyRequest().permitAll()  // ← PERMITE TUDO sem autenticação!
+                .anyRequest().permitAll()  // ← ALLOWS EVERYTHING without authentication!
             );
 
         return http.build();
@@ -32,11 +32,11 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000"));  // adicione mais se precisar (ex: https://localhost:3000)
+        config.setAllowedOrigins(List.of("http://localhost:3000"));  // add more origins if needed (e.g. https://localhost:3000)
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-        config.setAllowCredentials(true);  // pode manter true por enquanto; mude para false se não precisar de cookies
+        config.setAllowCredentials(true);  // can keep true for now; set to false if cookies are not needed
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
