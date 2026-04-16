@@ -1,4 +1,4 @@
-package com.remote.system_pulse.utils;
+package com.remote.system_pulse.config;
 
 import java.io.IOException;
 import java.util.Arrays;

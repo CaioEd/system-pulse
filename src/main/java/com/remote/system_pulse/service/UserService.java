@@ -5,6 +5,7 @@ import com.remote.system_pulse.dto.UserResponseDTO;
 import com.remote.system_pulse.model.User;
 import com.remote.system_pulse.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public UserResponseDTO createUser(UserRequestDTO dto) {
@@ -22,7 +24,7 @@ public class UserService {
         user.setName(dto.name());
         user.setEmail(dto.email());
         user.setPhoneNumber(dto.phoneNumber());
-        user.setPassword(dto.password());
+        user.setPassword(passwordEncoder.encode(dto.password()));
 
         User saved = userRepository.save(user);
         return mapToResponseDTO(saved);
@@ -50,7 +52,7 @@ public class UserService {
         user.setName(dto.name());
         user.setEmail(dto.email());
         user.setPhoneNumber(dto.phoneNumber());
-        user.setPassword(dto.password());
+        user.setPassword(passwordEncoder.encode(dto.password()));
 
         User updated = userRepository.save(user);
         return mapToResponseDTO(updated);
