@@ -37,7 +37,10 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .anyRequest().permitAll()  // ← ALLOWS EVERYTHING without authentication!
+                //.anyRequest().permitAll()  // ← ALLOWS EVERYTHING without authentication
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll() // registration
+                .anyRequest().authenticated()
             )
             .addFilterBefore(jwtCookieFilter, UsernamePasswordAuthenticationFilter.class);
 
