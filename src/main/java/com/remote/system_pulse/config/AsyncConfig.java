@@ -7,13 +7,13 @@ import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.core.task.support.TaskExecutorAdapter;
 import java.util.concurrent.Executors;
 
-@Configuration // avisa ao framework que nessa classe existem definições de objetos que o Spring precisa criar e gerenciar assim que o projeto iniciar
-@EnableAsync // habilita o processamento assíncrono
+@Configuration // tells the framework that this class contains bean definitions Spring should create and manage at startup
+@EnableAsync // enables asynchronous processing
 public class AsyncConfig {
 
-    @Bean(name = "taskExecutor")    // guarda o objeto retornado dentro do Application Context
+    @Bean(name = "taskExecutor")    // stores the returned object in the Application Context
     public AsyncTaskExecutor applicationTaskExecutor() {
-        // Cria um executor que lança uma nova Virtual Thread para cada tarefa
+        // Creates an executor that spawns a new Virtual Thread for each task
         return new TaskExecutorAdapter(Executors.newVirtualThreadPerTaskExecutor());
     }
 }

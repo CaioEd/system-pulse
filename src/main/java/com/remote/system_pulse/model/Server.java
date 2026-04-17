@@ -34,11 +34,11 @@ public class Server {
     @Column(length = 500)
     private String description;
 
-    // Hibernate 6 mapeia nativamente para UUID do Postgres
+    // Hibernate 6 natively maps to UUID in Postgres
     @Column(nullable = false, unique = true, updatable = false)
     private UUID token;
 
-    // IP público do servidor
+    // Server's public IP
     private String ip;
 
     @Enumerated(EnumType.STRING)
@@ -48,15 +48,15 @@ public class Server {
     @Column(name = "last_heartbeat")
     private LocalDateTime lastHeartbeat;
 
-    // dados dinâmicos, enviados pelo agente externo dos servidores
+    // dynamic data sent by the remote agent
     
     private Double usageCpu;
     private Double usageRam;
     private Double usageDisk;
 
     /**
-     * Gerar o Token automaticamente antes de salvar no banco pela primeira vez.
-     * garante que nunca exista um server no banco sem um token
+     * Automatically generate the token before the first save to the database.
+     * Ensures a server is never persisted without a token.
     */
     @PrePersist
     public void generateToken() {

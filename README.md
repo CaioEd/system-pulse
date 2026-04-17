@@ -55,7 +55,19 @@ cd system-pulse
 chmod +x mvnw
 ```
 
-### 3. Run Spring Boot Application
+### 3. Configure environment variables
+The application reads the JWT secret from the `JWT_SECRET` environment variable. A default dev key is provided as a fallback so the app starts locally without any setup — **do not use the default in production**.
+
+For production, generate a secure secret and set the environment variable:
+```bash
+# Generate a secret
+openssl rand -hex 32
+
+# Set it (e.g. in your server, CI/CD, or container config)
+export JWT_SECRET=your_generated_secret_here
+```
+
+### 4. Run Spring Boot Application
 ```bash
 ./mvnw spring-boot:run
 ```

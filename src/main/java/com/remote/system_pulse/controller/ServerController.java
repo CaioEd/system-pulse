@@ -7,7 +7,7 @@ import com.remote.system_pulse.dto.ServerResponseDTO;
 import com.remote.system_pulse.service.ServerService;
 import com.remote.system_pulse.dto.TelemetryDTO;
 import com.remote.system_pulse.service.ServerTelemetryService;
-import jakarta.validation.Valid; // Importação correta para validação
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
