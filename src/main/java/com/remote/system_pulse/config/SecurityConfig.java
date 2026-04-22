@@ -38,7 +38,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 //.anyRequest().permitAll()  // ← ALLOWS EVERYTHING without authentication
-                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll() 
+                .requestMatchers("/api/v1/servers/heartbeat").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll() // registration
                 .anyRequest().authenticated()
             )
