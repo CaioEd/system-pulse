@@ -148,4 +148,24 @@ public class ServerTelemetryServiceTest {
         verify(serverRepository, never()).save(any(Server.class));
         verify(messagingTemplate, never()).convertAndSend(anyString(), any(Server.class));
     }
+
+    @Test
+    @DisplayName("Should mark server as offline if lastHeartbeat is null")
+    void checkOfflineServers_ShouldMarkOffline_WhenHeartbeatNull() {
+        // Arrange
+        Server staleServer = new Server();
+        staleServer.setName("Stale Server");
+        staleServer.setStatus(ServerStatus.ONLINE);
+        staleServer.setLastHeartbeat(null);
+
+        when(serverRepository.findAll()).thenReturn(Arrays.asList(staleServer));
+
+        // Act
+        serverTelemetryService.checkOfflineServers();
+
+        // Assert
+        assertEquals(ServerStatus.OFFLINE, staleServer.getStatus());
+        verify(serverRepository).save(staleServer);
+        verify(messagingTemplate).convertAndSend("/topic/status", staleServer);
+    }
 }
