@@ -72,6 +72,22 @@ export JWT_SECRET=your_generated_secret_here
 ./mvnw spring-boot:run
 ```
 
+### 5. Running Tests
+Run all tests:
+```bash
+./mvnw test
+```
+
+Run only unit tests (excluding integration tests):
+```bash
+./mvnw test -Dtest='!com.remote.system_pulse.ApplicationTests'
+```
+
+Run a specific test class:
+```bash
+./mvnw test -Dtest=com.remote.system_pulse.service.UserServiceTest
+```
+
 ## Documentation
 The projetc uses springdoc-openapi to generate the API documentation. You can access it at `http://localhost:8080/swagger-ui.html`
 In the documentation you will have access to all endpoints and their respective parameters.
