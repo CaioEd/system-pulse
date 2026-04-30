@@ -14,12 +14,6 @@
 | **Estimated class-level coverage** | **~19%** (3 / 16 testable classes) |
 | **Estimated method-level coverage** | **~40%** (≈14 of ~35 public methods on testable classes) |
 
-> [!NOTE]
-> These are *structural* estimates based on code analysis (not JaCoCo line-coverage). Service-layer happy and error paths are exercised consistently, but everything outside the service package — controllers, security filter chain, JWT, utilities — is still untested.
-
-> [!IMPORTANT]
-> `AuthService.java` is currently **deleted** on this branch (`git status`: `D src/main/java/com/remote/system_pulse/service/AuthService.java`). Authentication now lives entirely in `AuthController` + `JwtService` + `CustomUserDetailsService`. References to `AuthService` from older drafts of this document have been removed.
-
 ---
 
 ## What IS Currently Tested
