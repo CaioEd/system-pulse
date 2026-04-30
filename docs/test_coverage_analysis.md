@@ -6,7 +6,7 @@
 
 | Metric | Value |
 |---|---|
-| **Total source files** | 28 (excluding `Application.java`; `AuthService.java` deleted on this branch) |
+| **Total source files** | 28 |
 | **Total testable classes** | 16 (services, controllers, configs, filter, model, utils) |
 | **Classes with tests** | 3 (`ServerService`, `UserService`, `ServerTelemetryService`) |
 | **Test files** | 4 (incl. the `ApplicationTests` smoke test) |
@@ -32,9 +32,6 @@
 | 8 | `deleteServer_ShouldThrowException_WhenNotFound` | `deleteServer()` — error path |
 
 **Status:** all 5 public methods covered with both happy and error paths. ArgumentCaptor is used to assert the entity is mapped correctly before persistence.
-
-**Remaining minor gap:**
-- `getAllServers` when the repository returns an empty list (defensive test, low priority).
 
 ---
 
@@ -73,10 +70,6 @@
 | 5 | `checkOfflineServers_ShouldMarkOffline_WhenHeartbeatNull` | `checkOfflineServers()` — `null` heartbeat treated as stale. |
 
 **Status:** the core heartbeat engine is now under test. Good use of `ArgumentCaptor` and explicit `verify(..., never())` checks on the negative paths.
-
-**Remaining gaps:**
-- Server already in `OFFLINE` state is correctly skipped (filter `s.getStatus() == ONLINE`). No regression test asserts that yet — would catch a refactor that loosens the filter.
-- `request.getHeader("X-Forwarded-For")` path is commented out in production code; no test needed until it is enabled.
 
 ---
 
