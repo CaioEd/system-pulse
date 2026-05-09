@@ -95,3 +95,17 @@ In the documentation you will have access to all endpoints and their respective 
 ## Postman
 The project also has a Postman collection with all the endpoints and their respective parameters. You can find it at `postman/servers_spring.postman_collection.json`
 You can import it into Postman and use it to test the API.
+
+### Using the heartbeat request
+The `POST /api/v1/servers/heartbeat` endpoint authenticates the agent via the `X-Agent-Token` header (the token is **not** sent in the JSON body anymore — see `docs/heartbeat_hardening.md`).
+
+1. Register a server via `POST /api/v1/servers` and copy the `token` UUID from the response.
+2. In Postman, open the collection's **Variables** tab and paste that UUID into the `agentToken` variable.
+3. Run `POST /api/v1/servers/heartbeat`. The request will send:
+   * Header: `X-Agent-Token: {{agentToken}}`
+   * Body: `{ "usageCpu": 45.5, "usageRam": 60.2, "usageDisk": 30.0 }`
+
+Expected responses:
+* `200 OK` — telemetry accepted, broadcast pushed to `/topic/status`.
+* `401 Unauthorized` — token is missing or unknown.
+* `400 Bad Request` — body is missing a metric or a metric is outside `[0, 100]`. Response includes a `fields` map pointing at the invalid field.

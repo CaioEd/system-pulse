@@ -286,10 +286,22 @@
       "name": "POST /api/v1/servers/heartbeat",
       "request": {
         "method": "POST",
-        "header": [],
+        "header": [
+          {
+            "key": "X-Agent-Token",
+            "value": "{{agentToken}}",
+            "type": "text",
+            "description": "UUID returned by POST /api/v1/servers when the server was registered"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"token\": \"d9843a70-f38b-4c91-bdac-de5f82bf363b\",\n  \"usageCpu\": 45.5,\n  \"usageRam\": 60.2,\n  \"usageDisk\": 30.0\n}",
+          "raw": "{\n  \"usageCpu\": 45.5,\n  \"usageRam\": 60.2,\n  \"usageDisk\": 30.0\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -312,6 +324,14 @@
         }
       },
       "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "agentToken",
+      "value": "d9843a70-f38b-4c91-bdac-de5f82bf363b",
+      "type": "string",
+      "description": "Agent token (UUID). Replace with the token returned by POST /api/v1/servers."
     }
   ]
 }
