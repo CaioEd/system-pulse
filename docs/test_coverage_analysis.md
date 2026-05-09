@@ -1,6 +1,8 @@
 # System Pulse — Test Coverage Analysis
 
-> Last updated: 2026-04-30 — branch `feature/unit-tests`
+> Last updated: 2026-05-09 — branch `feature/unit-tests`
+
+## Current coverage map (manual — performed by Claude Opus)
 
 ## Summary
 
