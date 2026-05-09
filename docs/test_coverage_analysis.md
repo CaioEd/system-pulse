@@ -10,11 +10,11 @@
 |---|---|
 | **Total source files** | 28 |
 | **Total testable classes** | 16 (services, controllers, configs, filter, model, utils) |
-| **Classes with tests** | 3 (`ServerService`, `UserService`, `ServerTelemetryService`) |
-| **Test files** | 4 (incl. the `ApplicationTests` smoke test) |
-| **Total `@Test` methods** | 26 (8 + 12 + 5 + 1 context-load) |
-| **Estimated class-level coverage** | **~19%** (3 / 16 testable classes) |
-| **Estimated method-level coverage** | **~40%** (≈14 of ~35 public methods on testable classes) |
+| **Classes with tests** | 4 (`ServerService`, `UserService`, `ServerTelemetryService`, `JwtService`) |
+| **Test files** | 5 (incl. the `ApplicationTests` smoke test) |
+| **Total `@Test` methods** | 36 (8 + 12 + 5 + 10 + 1 context-load) |
+| **Estimated class-level coverage** | **~25%** (4 / 16 testable classes) |
+| **Estimated method-level coverage** | **~49%** (≈17 of ~35 public methods on testable classes) |
 
 ---
 
@@ -75,6 +75,25 @@
 
 ---
 
+### ✅ [JwtServiceTest](file:///home/caioe/dev_projects/system-pulse/src/test/java/com/remote/system_pulse/service/JwtServiceTest.java) — 10 tests *(NEW)*
+
+| # | Test | Method covered |
+|---|------|----------------|
+| 1 | `generate_ShouldReturnTokenWithCorrectClaims_WhenGivenValidUser` | `generate()` — happy path. Decodes the token independently and asserts subject, role claim, name claim, issuedAt, and expiration. |
+| 2 | `generate_ShouldThrowException_WhenUserIsNull` | `generate()` — error path. Asserts `NullPointerException` when user is null. |
+| 3 | `extractUserEmail_ShouldReturnEmail_WhenTokenIsValid` | `extractUserEmail()` — happy path. Generates a token and asserts the extracted email matches. |
+| 4 | `extractUserEmail_ShouldThrowException_WhenSignatureIsWrong` | `extractUserEmail()` — error path. Token signed with a different key is rejected. |
+| 5 | `extractUserEmail_ShouldThrowException_WhenTokenIsMalformed` | `extractUserEmail()` — error path. Garbage string throws exception. |
+| 6 | `isValid_ShouldReturnTrue_WhenTokenIsValid` | `isValid()` — happy path. Freshly generated token returns `true`. |
+| 7 | `isValid_ShouldReturnFalse_WhenTokenIsExpired` | `isValid()` — expired token (built with past expiration date) returns `false`. |
+| 8 | `isValid_ShouldReturnFalse_WhenSignatureIsInvalid` | `isValid()` — token signed with wrong key returns `false`. |
+| 9 | `isValid_ShouldReturnFalse_WhenTokenIsMalformed` | `isValid()` — malformed string returns `false`. |
+| 10 | `isValid_ShouldReturnFalse_WhenTokenIsNull` | `isValid()` — null input returns `false`. |
+
+**Status:** all 3 public methods covered with happy and error paths. Uses `ReflectionTestUtils` to inject `@Value` fields (`secret`, `expirationMs`). No mocks — tests real crypto logic by generating and decoding actual JWTs.
+
+---
+
 ### ✅ [ApplicationTests](file:///home/caioe/Documentos/Pasta-Caio/sp/system-pulse/src/test/java/com/remote/system_pulse/ApplicationTests.java) — 1 test
 - `contextLoads()` — smoke test that the Spring context starts. Requires a running PostgreSQL (Spring Docker Compose integration), so it may fail in CI without Docker available.
 
@@ -84,20 +103,7 @@
 
 ### 🔴 High Priority — Authentication backbone
 
-#### 1. `JwtService` — **0 tests**
-
-Without tests here, an accidental change to claim names, signing key handling, or expiration math will silently break every authenticated request.
-
-| Method | Test suggestions |
-|--------|------------------|
-| `generate(User)` | • Returns a non-empty JWT.<br>• Subject = `user.getEmail()`.<br>• `role` claim = `user.getRole().name()`.<br>• `name` claim = `user.getName()`.<br>• `expiration` ≈ now + `expirationMs` (use `@Value` injection or reflection / `ReflectionTestUtils` to set the secret + expiration on the unit). |
-| `extractUserEmail(String)` | • Returns the subject for a token produced by `generate()`.<br>• Throws `JwtException` for a tampered signature. |
-| `isValid(String)` | • `true` for a freshly generated token.<br>• `false` for an expired token (build a token with a short `expirationMs` and sleep, **or** craft the token directly with `Jwts.builder().setExpiration(past)`).<br>• `false` for a tampered token.<br>• `false` for `null` / empty string (`IllegalArgumentException` branch). |
-
-> [!TIP]
-> For unit tests, inject the `secret` via `ReflectionTestUtils.setField(jwtService, "secret", base64Secret)` and a known `expirationMs`. The secret must be Base64-encoded and ≥ 256 bits for HS256.
-
-#### 2. `CustomUserDetailsService` — **0 tests**
+#### 1. `CustomUserDetailsService` — **0 tests**
 
 | Method | Test suggestions |
 |--------|------------------|
@@ -110,7 +116,7 @@ Without tests here, an accidental change to claim names, signing key handling, o
 > [!IMPORTANT]
 > There are still **zero controller tests**. Controller tests (`@WebMvcTest`) validate HTTP status codes, request validation (`@Valid`), JSON (de)serialisation, and security rules — all of which are invisible to service-level unit tests.
 
-#### 3. `ServerController` — **0 tests** (6 endpoints)
+#### 2. `ServerController` — **0 tests** (6 endpoints)
 
 | Endpoint | Test suggestions |
 |----------|------------------|
@@ -121,11 +127,11 @@ Without tests here, an accidental change to claim names, signing key handling, o
 | `DELETE /api/v1/servers/{id}` | • 204 No Content on success. |
 | `POST /api/v1/servers/heartbeat` | • 200 OK without authentication (allow-listed in `SecurityConfig`).<br>• Bad/unknown token → 500 (or whatever the global handler turns it into). |
 
-#### 4. `UsersController` — **0 tests** (5 endpoints)
+#### 3. `UsersController` — **0 tests** (5 endpoints)
 
 Same `@WebMvcTest` pattern as `ServerController`. `POST /api/v1/users` is allow-listed for registration; the other four require authentication.
 
-#### 5. `AuthController` — **0 tests** (2 endpoints)
+#### 4. `AuthController` — **0 tests** (2 endpoints)
 
 | Endpoint | Test suggestions |
 |----------|------------------|
@@ -136,7 +142,7 @@ Same `@WebMvcTest` pattern as `ServerController`. `POST /api/v1/users` is allow-
 
 ### 🟠 Medium-Low Priority — Security / config
 
-#### 6. `JwtCookieFilter` — **0 tests**
+#### 5. `JwtCookieFilter` — **0 tests**
 
 | Scenario | Expected behaviour |
 |----------|-------------------|
@@ -147,7 +153,7 @@ Same `@WebMvcTest` pattern as `ServerController`. `POST /api/v1/users` is allow-
 
 Use a real `OncePerRequestFilter` invocation with `MockHttpServletRequest`/`MockHttpServletResponse` and a `MockFilterChain`; mock `JwtService` and `CustomUserDetailsService`.
 
-#### 7. `SecurityConfig` — best covered via `@WebMvcTest`
+#### 6. `SecurityConfig` — best covered via `@WebMvcTest`
 
 Verify, against a `MockMvc` configured with the real filter chain:
 - `/api/v1/auth/**` is public.
@@ -160,18 +166,18 @@ Verify, against a `MockMvc` configured with the real filter chain:
 
 ### 🟢 Low Priority — Utility / model / config
 
-#### 8. `NotificationService` — **0 tests**
+#### 7. `NotificationService` — **0 tests**
 - Single method, thin wrapper. One test: verify `messagingTemplate.convertAndSend("/topic/status", event)` is called with the event passed in.
 
-#### 9. `IpRegex` — **0 tests**
+#### 8. `IpRegex` — **0 tests**
 - Parametric test on `IP_PATTERN` against valid IPv4 (`192.168.0.1`, `0.0.0.0`, `255.255.255.255`) and IPv6 (`fe80:0:0:0:0:0:0:1`) addresses, plus invalid samples (`999.1.1.1`, `not-an-ip`).
 - Reflection test: invoking the private constructor throws `UnsupportedOperationException`.
 
-#### 10. `Server.generateToken()` (`@PrePersist`) — **0 tests**
+#### 9. `Server.generateToken()` (`@PrePersist`) — **0 tests**
 - Token is generated when `null` (unit test of the `generateToken()` method directly — no JPA needed).
 - Token is **not** overwritten when already set.
 
-#### 11. `AsyncConfig`, `WebSocketConfig` — low ROI for unit tests
+#### 10. `AsyncConfig`, `WebSocketConfig` — low ROI for unit tests
 - Better covered by an integration test that opens a SockJS/STOMP connection on `/ws-pulse` and subscribes to `/topic/status`. Skip until the controller/integration suite exists.
 
 ---
@@ -184,7 +190,7 @@ CLASS                          TESTS  TESTED?  PRIORITY    NOTES
 ServerService                    8      ✅      —           Full happy + error paths
 UserService                     12      ✅      —           Full happy + error paths + side effects
 ServerTelemetryService           5      ✅      —           updateTelemetry + checkOfflineServers
-JwtService                       0      ❌      🔴 HIGH     Auth token generation/validation
+JwtService                      10      ✅      —           All 3 methods: generate/extract/isValid
 CustomUserDetailsService         0      ❌      🔴 HIGH     User auth loading
 ServerController                 0      ❌      🟡 MED      HTTP layer + validation (6 endpoints)
 UsersController                  0      ❌      🟡 MED      HTTP layer + validation (5 endpoints)
@@ -202,10 +208,10 @@ AsyncConfig / WebSocketConfig    —      ❌      🟢 LOW      Better via inte
 ## Recommended Action Plan
 
 ### Phase 1 — Auth backbone (small, high-leverage)
-1. **`JwtServiceTest`** — 5–6 tests for `generate`, `extractUserEmail`, `isValid` (incl. expired/tampered/null branches).
+1. ~~**`JwtServiceTest`** — 5–6 tests for `generate`, `extractUserEmail`, `isValid`~~ ✅ **Done** — 10 tests.
 2. **`CustomUserDetailsServiceTest`** — 2 tests (found / not found).
 
-> Estimated bump: ~40% → ~55% method-level coverage. Closes the highest-risk gap (broken auth = silently broken every request).
+> `JwtService` is now covered. Remaining gap: `CustomUserDetailsService`. After that, estimated ~55% method-level coverage.
 
 ### Phase 2 — Controller integration tests (`@WebMvcTest`)
 3. **`AuthControllerTest`** — 4–5 tests, including cookie-attribute assertions (HttpOnly, Secure, SameSite=Strict, Max-Age).
