@@ -1,9 +1,12 @@
 package com.remote.system_pulse.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.remote.system_pulse.dto.ServerRequestDTO;
 import com.remote.system_pulse.dto.ServerResponseDTO;
+import com.remote.system_pulse.dto.StatusUpdateEvent;
+import com.remote.system_pulse.service.NotificationService;
 import com.remote.system_pulse.service.ServerService;
 import com.remote.system_pulse.dto.TelemetryDTO;
 import com.remote.system_pulse.service.ServerTelemetryService;
@@ -21,6 +24,7 @@ public class ServerController {
 
     private final ServerService serverService;
     private final ServerTelemetryService serverTelemetryService;
+    private final NotificationService notificationService;
     
     @PostMapping
     public ResponseEntity<ServerResponseDTO> createServer(@Valid @RequestBody ServerRequestDTO request) {
@@ -54,10 +58,14 @@ public class ServerController {
 
     @PostMapping("/heartbeat")
     public ResponseEntity<Void> receiveHeartbeat(
-            @RequestBody TelemetryDTO telemetryDTO, 
+            @RequestHeader("X-Agent-Token") UUID agentToken,
+            @Valid @RequestBody TelemetryDTO telemetryDTO,
             HttpServletRequest request
     ) {
-        serverTelemetryService.updateTelemetry(telemetryDTO, request);
+        // Persist inside the transactional service, then broadcast AFTER commit
+        // so a slow STOMP broker can't keep the DB transaction open.
+        StatusUpdateEvent event = serverTelemetryService.updateTelemetry(agentToken, telemetryDTO, request);
+        notificationService.notifyStatusChange(event);
         return ResponseEntity.ok().build();
     }
 

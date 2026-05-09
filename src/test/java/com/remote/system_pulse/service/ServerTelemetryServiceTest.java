@@ -1,6 +1,8 @@
 package com.remote.system_pulse.service;
 
+import com.remote.system_pulse.dto.StatusUpdateEvent;
 import com.remote.system_pulse.dto.TelemetryDTO;
+import com.remote.system_pulse.exception.InvalidAgentTokenException;
 import com.remote.system_pulse.model.Server;
 import com.remote.system_pulse.model.enums.ServerStatus;
 import com.remote.system_pulse.repository.ServerRepository;
@@ -13,16 +15,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -33,7 +33,7 @@ public class ServerTelemetryServiceTest {
     private ServerRepository serverRepository;
 
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private NotificationService notificationService;
 
     @Mock
     private HttpServletRequest request;
@@ -42,11 +42,10 @@ public class ServerTelemetryServiceTest {
     private ServerTelemetryService serverTelemetryService;
 
     @Test
-    @DisplayName("Should update telemetry successfully if server exists")
+    @DisplayName("Should update telemetry and return event without leaking the token")
     void updateTelemetry_ShouldUpdateServer_WhenServerExists() {
-        // Arrange
         UUID token = UUID.randomUUID();
-        TelemetryDTO telemetryDTO = new TelemetryDTO(token, 42.5, 60.0, 75.3);
+        TelemetryDTO telemetryDTO = new TelemetryDTO(42.5, 60.0, 75.3);
 
         Server existingServer = new Server();
         existingServer.setId(1L);
@@ -55,117 +54,98 @@ public class ServerTelemetryServiceTest {
         existingServer.setStatus(ServerStatus.OFFLINE);
 
         when(serverRepository.findServerByToken(token)).thenReturn(Optional.of(existingServer));
-        // Returns the same server passed to save(), so the flow continues with our captured state
-        when(serverRepository.save(any(Server.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(request.getRemoteAddr()).thenReturn("192.168.0.10");
 
-        // Act
-        serverTelemetryService.updateTelemetry(telemetryDTO, request);
+        StatusUpdateEvent event = serverTelemetryService.updateTelemetry(token, telemetryDTO, request);
 
-        // Assert: capture the server that was saved and inspect its state
-        ArgumentCaptor<Server> serverCaptor = ArgumentCaptor.forClass(Server.class);
-        verify(serverRepository).save(serverCaptor.capture());
-        Server saved = serverCaptor.getValue();
+        // Entity was mutated in place; Hibernate dirty-checking flushes on commit,
+        // so we should NOT see an explicit save() call.
+        verify(serverRepository, never()).save(any(Server.class));
 
-        assertEquals(42.5, saved.getUsageCpu());
-        assertEquals(60.0, saved.getUsageRam());
-        assertEquals(75.3, saved.getUsageDisk());
-        assertEquals(ServerStatus.ONLINE, saved.getStatus());
-        assertEquals("192.168.0.10", saved.getIp());
-        assertNotNull(saved.getLastHeartbeat());
+        assertEquals(42.5, existingServer.getUsageCpu());
+        assertEquals(60.0, existingServer.getUsageRam());
+        assertEquals(75.3, existingServer.getUsageDisk());
+        assertEquals(ServerStatus.ONLINE, existingServer.getStatus());
+        assertEquals("192.168.0.10", existingServer.getIp());
+        assertNotNull(existingServer.getLastHeartbeat());
 
-        // Ensure the WebSocket broadcast was triggered on the correct topic
-        verify(messagingTemplate).convertAndSend(eq("/topic/status"), any(Server.class));
+        // Returned event carries DTO fields only — no token field exists on it.
+        assertNotNull(event);
+        assertEquals(1L, event.serverId());
+        assertEquals(ServerStatus.ONLINE, event.status());
+        assertEquals(42.5, event.usageCpu());
+        assertEquals("192.168.0.10", event.ip());
+
+        // Service does not broadcast itself; the controller does that after commit.
+        verifyNoInteractions(notificationService);
     }
 
     @Test
-    @DisplayName("Should throw exception and not save or broadcast when token is not found")
-    void updateTelemetry_ShouldThrowException_WhenTokenNotFound() {
-        // Arrange
+    @DisplayName("Should throw InvalidAgentTokenException when token is unknown")
+    void updateTelemetry_ShouldThrow_WhenTokenNotFound() {
         UUID token = UUID.randomUUID();
-        TelemetryDTO telemetryDTO = new TelemetryDTO(token, 42.5, 60.0, 75.3);
+        TelemetryDTO telemetryDTO = new TelemetryDTO(42.5, 60.0, 75.3);
 
         when(serverRepository.findServerByToken(token)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> serverTelemetryService.updateTelemetry(telemetryDTO, request));
+        InvalidAgentTokenException ex = assertThrows(InvalidAgentTokenException.class,
+                () -> serverTelemetryService.updateTelemetry(token, telemetryDTO, request));
 
-        assertEquals("Server not found with provided token", exception.getMessage());
+        assertEquals("Unknown agent token", ex.getMessage());
 
-        // No persistence and no WebSocket broadcast should happen on failure
         verify(serverRepository, never()).save(any(Server.class));
-        verify(messagingTemplate, never()).convertAndSend(anyString(), any(Server.class));
+        verifyNoInteractions(notificationService);
     }
 
     @Test
-    @DisplayName("Should mark server as offline if last heartbeat is too old")
+    @DisplayName("Should throw InvalidAgentTokenException when token header is missing")
+    void updateTelemetry_ShouldThrow_WhenTokenIsNull() {
+        TelemetryDTO telemetryDTO = new TelemetryDTO(42.5, 60.0, 75.3);
+
+        InvalidAgentTokenException ex = assertThrows(InvalidAgentTokenException.class,
+                () -> serverTelemetryService.updateTelemetry(null, telemetryDTO, request));
+
+        assertEquals("Missing X-Agent-Token header", ex.getMessage());
+        verifyNoInteractions(serverRepository);
+        verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    @DisplayName("Should mark stale servers OFFLINE and broadcast a token-free event")
     void checkOfflineServers_ShouldMarkAsOffline_WhenHeartbeatIsOld() {
-        // Arrange
         Server staleServer = new Server();
+        staleServer.setId(7L);
         staleServer.setName("Stale Server");
+        staleServer.setToken(UUID.randomUUID()); // a token MUST never escape via the broadcast
         staleServer.setStatus(ServerStatus.ONLINE);
-        staleServer.setLastHeartbeat(LocalDateTime.now().minusSeconds(120)); // > 60s threshold
+        staleServer.setLastHeartbeat(LocalDateTime.now().minusSeconds(120));
 
-        Server recentServer = new Server();
-        recentServer.setName("Recent Server");
-        recentServer.setStatus(ServerStatus.ONLINE);
-        recentServer.setLastHeartbeat(LocalDateTime.now().minusSeconds(30)); // within threshold
+        when(serverRepository.findStaleOnlineServers(eq(ServerStatus.ONLINE), any(LocalDateTime.class)))
+                .thenReturn(List.of(staleServer));
 
-        // Single findAll() returns BOTH servers — the scheduler fetches them in one call
-        when(serverRepository.findAll()).thenReturn(Arrays.asList(staleServer, recentServer));
-
-        // Act
         serverTelemetryService.checkOfflineServers();
 
-        // Assert: stale server was flipped to OFFLINE, persisted and broadcast
         assertEquals(ServerStatus.OFFLINE, staleServer.getStatus());
-        verify(serverRepository).save(staleServer);
-        verify(messagingTemplate).convertAndSend("/topic/status", staleServer);
 
-        // Recent server is untouched: still ONLINE, never saved, never broadcast
-        assertEquals(ServerStatus.ONLINE, recentServer.getStatus());
-        verify(serverRepository, never()).save(recentServer);
-        verify(messagingTemplate, never()).convertAndSend("/topic/status", recentServer);
-    }
+        ArgumentCaptor<StatusUpdateEvent> eventCaptor = ArgumentCaptor.forClass(StatusUpdateEvent.class);
+        verify(notificationService).notifyStatusChange(eventCaptor.capture());
+        StatusUpdateEvent event = eventCaptor.getValue();
+        assertEquals(7L, event.serverId());
+        assertEquals(ServerStatus.OFFLINE, event.status());
 
-    @Test
-    @DisplayName("Should ignore servers with recent heartbeats and not mark them offline")
-    void checkOfflineServers_ShouldIgnoreRecentServers() {
-        // Arrange
-        Server recentServer = new Server();
-        recentServer.setName("Recent Server");
-        recentServer.setStatus(ServerStatus.ONLINE);
-        recentServer.setLastHeartbeat(LocalDateTime.now().minusSeconds(45)); // within threshold
-
-        when(serverRepository.findAll()).thenReturn(Arrays.asList(recentServer));
-
-        // Act
-        serverTelemetryService.checkOfflineServers();
-
-        // Assert: status was not changed and no side-effects were triggered
-        assertEquals(ServerStatus.ONLINE, recentServer.getStatus());
+        // Dirty-checking handles persistence; no explicit save expected.
         verify(serverRepository, never()).save(any(Server.class));
-        verify(messagingTemplate, never()).convertAndSend(anyString(), any(Server.class));
     }
 
     @Test
-    @DisplayName("Should mark server as offline if lastHeartbeat is null")
-    void checkOfflineServers_ShouldMarkOffline_WhenHeartbeatNull() {
-        // Arrange
-        Server staleServer = new Server();
-        staleServer.setName("Stale Server");
-        staleServer.setStatus(ServerStatus.ONLINE);
-        staleServer.setLastHeartbeat(null);
+    @DisplayName("Should do nothing when no servers are stale")
+    void checkOfflineServers_ShouldDoNothing_WhenNoStaleServers() {
+        when(serverRepository.findStaleOnlineServers(eq(ServerStatus.ONLINE), any(LocalDateTime.class)))
+                .thenReturn(List.of());
 
-        when(serverRepository.findAll()).thenReturn(Arrays.asList(staleServer));
-
-        // Act
         serverTelemetryService.checkOfflineServers();
 
-        // Assert
-        assertEquals(ServerStatus.OFFLINE, staleServer.getStatus());
-        verify(serverRepository).save(staleServer);
-        verify(messagingTemplate).convertAndSend("/topic/status", staleServer);
+        verifyNoInteractions(notificationService);
+        verify(serverRepository, never()).save(any(Server.class));
     }
 }
