@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,19 +39,18 @@ public class UserServiceTest {
     private UserService userService;
 
     @Test
-    @DisplayName("Should create a user successfully and return DTO")
+    @DisplayName("Should create user successfully and return DTO")
     void createUser_ShouldReturnDTO_WhenSuccessful() {
         // Arrange
-        UserRequestDTO requestDTO = new UserRequestDTO("John Doe", "john.doe@example.com", "+1234567890", "password123");
-
+        UserRequestDTO requestDTO = new UserRequestDTO("John Doe", "[EMAIL_ADDRESS]", "+1234567890", "password");
+        
         User savedUser = new User();
         savedUser.setId(1L);
         savedUser.setName("John Doe");
-        savedUser.setEmail("john.doe@example.com");
+        savedUser.setEmail("[EMAIL_ADDRESS]");
         savedUser.setPhoneNumber("+1234567890");
-        savedUser.setPassword("encodedPassword");
+        savedUser.setPassword("password");
 
-        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         // Act
@@ -61,7 +60,7 @@ public class UserServiceTest {
         assertNotNull(response);
         assertEquals(1L, response.id());
         assertEquals("John Doe", response.name());
-        assertEquals("john.doe@example.com", response.email());
+        assertEquals("[EMAIL_ADDRESS]", response.email());
         assertEquals("+1234567890", response.phoneNumber());
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -69,132 +68,255 @@ public class UserServiceTest {
 
         User capturedUser = userCaptor.getValue();
         assertEquals("John Doe", capturedUser.getName());
-        assertEquals("john.doe@example.com", capturedUser.getEmail());
+        assertEquals("[EMAIL_ADDRESS]", capturedUser.getEmail());
         assertEquals("+1234567890", capturedUser.getPhoneNumber());
-        assertEquals("encodedPassword", capturedUser.getPassword());
     }
 
     @Test
-    @DisplayName("Should return user by ID when found")
-    void getUserById_ShouldReturnDTO_WhenFound() {
+    @DisplayName("Should encode password when creating user")
+    void createUser_ShouldEncodePassword() {
         // Arrange
-        Long userId = 1L;
-        User user = new User();
-        user.setId(userId);
-        user.setName("John Doe");
-        user.setEmail("john.doe@example.com");
-        user.setPhoneNumber("+1234567890");
+        UserRequestDTO requestDTO = new UserRequestDTO("Jane Doe", "[EMAIL_ADDRESS]", "+0987654321", "rawPassword");
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("rawPassword")).thenReturn("encodedPassword");
+
+        User savedUser = new User();
+        savedUser.setId(2L);
+        savedUser.setName("Jane Doe");
+        savedUser.setEmail("[EMAIL_ADDRESS]");
+        savedUser.setPhoneNumber("+0987654321");
+        savedUser.setPassword("encodedPassword");
+
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         // Act
-        UserResponseDTO response = userService.getUserById(userId);
+        userService.createUser(requestDTO);
 
         // Assert
-        assertEquals(userId, response.id());
-        assertEquals("John Doe", response.name());
-        assertEquals("john.doe@example.com", response.email());
-        verify(userRepository).findById(userId);
+        verify(passwordEncoder).encode("rawPassword");
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertEquals("encodedPassword", userCaptor.getValue().getPassword());
     }
 
-    @Test
-    @DisplayName("Should throw exception when user is not found by ID")
-    void getUserById_ShouldThrowException_WhenNotFound() {
-        // Arrange
-        Long userId = 99L;
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            userService.getUserById(userId);
-        });
-
-        assertEquals("User not found with id: 99", exception.getMessage());
-        verify(userRepository).findById(userId);
-    }
+    // ==================== getAllUsers ====================
 
     @Test
     @DisplayName("Should return a list of all users")
     void getAllUsers_ShouldReturnList() {
         // Arrange
-        User u1 = new User(); u1.setName("Alice"); u1.setEmail("alice@example.com");
-        User u2 = new User(); u2.setName("Bob");   u2.setEmail("bob@example.com");
-        User u3 = new User(); u3.setName("Carol");  u3.setEmail("carol@example.com");
+        User user = new User();
+        user.setId(1L);
+        user.setName("John Doe");
+        user.setEmail("[EMAIL_ADDRESS]");
+        user.setPhoneNumber("+1234567890");
+        user.setPassword("password");
 
-        when(userRepository.findAll()).thenReturn(List.of(u1, u2, u3));
+        when(userRepository.findAll()).thenReturn(List.of(user));
 
         // Act
-        List<UserResponseDTO> result = userService.getAllUsers();
-
+        List<UserResponseDTO> response = userService.getAllUsers();
+ 
         // Assert
-        assertNotNull(result);
-        assertEquals(3, result.size());
-        assertEquals("Alice", result.get(0).name());
-        assertEquals("Bob",   result.get(1).name());
-        assertEquals("Carol", result.get(2).name());
+        assertNotNull(response);
+        assertEquals(1, response.size());
+        assertEquals("John Doe", response.get(0).name());
+        assertEquals("[EMAIL_ADDRESS]", response.get(0).email());
         verify(userRepository).findAll();
     }
 
     @Test
-    @DisplayName("Should update user when it exists")
-    void updateUser_ShouldUpdateAndReturnDTO() {
+    @DisplayName("Should return an empty list when no user is found")
+    void getAllUsers_ShouldReturnEmptyList_WhenNoUserIsFound() {
         // Arrange
-        Long id = 1L;
-        UserRequestDTO updateRequest = new UserRequestDTO("Jane Doe", "jane.doe@example.com", "+0987654321", "newpassword");
-
-        User existingUser = new User();
-        existingUser.setId(id);
-        existingUser.setName("John Doe");
-        existingUser.setEmail("john.doe@example.com");
-        existingUser.setPhoneNumber("+1234567890");
-        existingUser.setPassword("oldEncodedPassword");
-
-        when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
-        when(passwordEncoder.encode(anyString())).thenReturn("newEncodedPassword");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.findAll()).thenReturn(List.of());
 
         // Act
-        UserResponseDTO response = userService.updateUser(id, updateRequest);
-
+        List<UserResponseDTO> response = userService.getAllUsers();
+ 
         // Assert
         assertNotNull(response);
-
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-
-        User capturedUser = userCaptor.getValue();
-        assertEquals("Jane Doe", capturedUser.getName());
-        assertEquals("jane.doe@example.com", capturedUser.getEmail());
-        assertEquals("+0987654321", capturedUser.getPhoneNumber());
-        assertEquals("newEncodedPassword", capturedUser.getPassword());
-        assertEquals(id, capturedUser.getId());
+        assertEquals(0, response.size());
+        verify(userRepository).findAll();
     }
 
     @Test
-    @DisplayName("Should throw exception when updating a non-existent user")
-    void updateUser_ShouldThrowException_WhenNotFound() {
+    @DisplayName("Should return multiple users when multiple exist")
+    void getAllUsers_ShouldReturnMultipleUsers() {
+        // Arrange
+        User user1 = new User();
+        user1.setId(1L);
+        user1.setName("John Doe");
+        user1.setEmail("[EMAIL_ADDRESS]");
+        user1.setPhoneNumber("+1234567890");
+
+        User user2 = new User();
+        user2.setId(2L);
+        user2.setName("Jane Doe");
+        user2.setEmail("[EMAIL_ADDRESS]");
+        user2.setPhoneNumber("+0987654321");
+
+        when(userRepository.findAll()).thenReturn(List.of(user1, user2));
+
+        // Act
+        List<UserResponseDTO> response = userService.getAllUsers();
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(2, response.size());
+        assertEquals("John Doe", response.get(0).name());
+        assertEquals("Jane Doe", response.get(1).name());
+        verify(userRepository).findAll();
+    }
+
+    // ==================== getUserById ====================
+
+    @Test
+    @DisplayName("Should return user by ID when found")
+    void getUserById_ShouldReturnDTO_WhenFound() {
+        // Arrange
+        Long id = 1L;
+        User user = new User();
+        user.setId(1L);
+        user.setName("John Doe");
+        user.setEmail("[EMAIL_ADDRESS]");
+        user.setPhoneNumber("+1234567890");
+        user.setPassword("password");
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+
+        // Act
+        UserResponseDTO response = userService.getUserById(id);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(1L, response.id());
+        assertEquals("John Doe", response.name());
+        assertEquals("[EMAIL_ADDRESS]", response.email());
+        assertEquals("+1234567890", response.phoneNumber());
+        verify(userRepository).findById(id);
+    }
+
+    @Test
+    @DisplayName("Should throw RuntimeException when user not found by ID")
+    void getUserById_ShouldThrowException_WhenNotFound() {
         // Arrange
         Long id = 99L;
-        UserRequestDTO updateRequest = new UserRequestDTO("Jane Doe", "jane.doe@example.com", "+0987654321", "newpassword");
-
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            userService.updateUser(id, updateRequest);
-        });
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> userService.getUserById(id));
 
         assertEquals("User not found with id: 99", exception.getMessage());
         verify(userRepository).findById(id);
     }
 
+    // ==================== updateUser ====================
+
     @Test
-    @DisplayName("Should delete user when it exists")
-    void deleteUser_ShouldCallDelete_WhenFound() {
+    @DisplayName("Should update user successfully and return updated DTO")
+    void updateUser_ShouldReturnUpdatedDTO_WhenFound() {
+        // Arrange
+        Long id = 1L;
+        UserRequestDTO requestDTO = new UserRequestDTO("Updated Name", "[EMAIL_ADDRESS]", "+1111111111", "newPassword");
+
+        User existingUser = new User();
+        existingUser.setId(1L);
+        existingUser.setName("Old Name");
+        existingUser.setEmail("[EMAIL_ADDRESS]");
+        existingUser.setPhoneNumber("+0000000000");
+        existingUser.setPassword("oldEncodedPassword");
+
+        User updatedUser = new User();
+        updatedUser.setId(1L);
+        updatedUser.setName("Updated Name");
+        updatedUser.setEmail("[EMAIL_ADDRESS]");
+        updatedUser.setPhoneNumber("+1111111111");
+        updatedUser.setPassword("newEncodedPassword");
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
+        when(passwordEncoder.encode("newPassword")).thenReturn("newEncodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+
+        // Act
+        UserResponseDTO response = userService.updateUser(id, requestDTO);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(1L, response.id());
+        assertEquals("Updated Name", response.name());
+        assertEquals("[EMAIL_ADDRESS]", response.email());
+        assertEquals("+1111111111", response.phoneNumber());
+
+        verify(userRepository).findById(id);
+        verify(passwordEncoder).encode("newPassword");
+        verify(userRepository).save(existingUser);
+    }
+
+    @Test
+    @DisplayName("Should set all fields on the existing user entity during update")
+    void updateUser_ShouldSetAllFieldsOnExistingUser() {
+        // Arrange
+        Long id = 1L;
+        UserRequestDTO requestDTO = new UserRequestDTO("New Name", "[EMAIL_ADDRESS]", "+9999999999", "secret123");
+
+        User existingUser = new User();
+        existingUser.setId(1L);
+        existingUser.setName("Old Name");
+        existingUser.setEmail("[EMAIL_ADDRESS]");
+        existingUser.setPhoneNumber("+0000000000");
+        existingUser.setPassword("oldHash");
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
+        when(passwordEncoder.encode("secret123")).thenReturn("hashedSecret");
+        when(userRepository.save(any(User.class))).thenReturn(existingUser);
+
+        // Act
+        userService.updateUser(id, requestDTO);
+
+        // Assert — verify the existing entity was mutated before save
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User captured = userCaptor.getValue();
+        assertEquals("New Name", captured.getName());
+        assertEquals("[EMAIL_ADDRESS]", captured.getEmail());
+        assertEquals("+9999999999", captured.getPhoneNumber());
+        assertEquals("hashedSecret", captured.getPassword());
+    }
+
+    @Test
+    @DisplayName("Should throw RuntimeException when updating a non-existent user")
+    void updateUser_ShouldThrowException_WhenNotFound() {
+        // Arrange
+        Long id = 99L;
+        UserRequestDTO requestDTO = new UserRequestDTO("Name", "[EMAIL_ADDRESS]", "+1234567890", "password");
+
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> userService.updateUser(id, requestDTO));
+
+        assertEquals("User not found with id: 99", exception.getMessage());
+        verify(userRepository).findById(id);
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    // ==================== deleteUser ====================
+
+    @Test
+    @DisplayName("Should delete user successfully when found")
+    void deleteUser_ShouldDeleteUser_WhenFound() {
         // Arrange
         Long id = 1L;
         User user = new User();
-        user.setId(id);
+        user.setId(1L);
+        user.setName("John Doe");
+        user.setEmail("[EMAIL_ADDRESS]");
+        user.setPhoneNumber("+1234567890");
 
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
@@ -202,22 +324,23 @@ public class UserServiceTest {
         userService.deleteUser(id);
 
         // Assert
+        verify(userRepository).findById(id);
         verify(userRepository).delete(user);
     }
 
     @Test
-    @DisplayName("Should throw exception when deleting a non-existent user")
+    @DisplayName("Should throw RuntimeException when deleting a non-existent user")
     void deleteUser_ShouldThrowException_WhenNotFound() {
         // Arrange
         Long id = 99L;
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            userService.deleteUser(id);
-        });
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> userService.deleteUser(id));
 
         assertEquals("User not found with id: 99", exception.getMessage());
         verify(userRepository).findById(id);
+        verify(userRepository, never()).delete(any(User.class));
     }
 }

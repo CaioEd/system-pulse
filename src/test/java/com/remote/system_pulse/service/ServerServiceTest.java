@@ -1,9 +1,16 @@
 package com.remote.system_pulse.service;
 
-import com.remote.system_pulse.dto.ServerRequestDTO;
-import com.remote.system_pulse.dto.ServerResponseDTO;
-import com.remote.system_pulse.model.Server;
-import com.remote.system_pulse.repository.ServerRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,12 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import com.remote.system_pulse.dto.ServerRequestDTO;
+import com.remote.system_pulse.dto.ServerResponseDTO;
+import com.remote.system_pulse.model.Server;
+import com.remote.system_pulse.repository.ServerRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ServerServiceTest {
@@ -162,5 +167,41 @@ class ServerServiceTest {
 
         // Assert
         verify(serverRepository).delete(server);
+    }
+
+    @Test
+    @DisplayName("Should throw exception and not save when updating a non-existent server")
+    void updateServer_ShouldThrowException_WhenNotFound() {
+        // Arrange
+        Long id = 1L;
+        ServerRequestDTO updateRequest = new ServerRequestDTO("New Name", "New Description");
+
+        when(serverRepository.findById(id)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> serverService.updateServer(id, updateRequest));
+
+        assertEquals("Server not found with id: 1", exception.getMessage());
+
+        // The save() must never run when the server doesn't exist
+        verify(serverRepository, never()).save(any(Server.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception and not delete when server is not found")
+    void deleteServer_ShouldThrowException_WhenNotFound() {
+        Long id = 1L;
+
+        when(serverRepository.findById(id)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> serverService.deleteServer(id));
+
+        assertEquals("Server not found with id: 1", exception.getMessage());
+
+        // The delete() must never run when the server doesn't exist
+        verify(serverRepository, never()).delete(any(Server.class));
     }
 }
